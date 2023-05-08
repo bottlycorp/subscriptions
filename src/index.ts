@@ -2,6 +2,7 @@ import { BColors } from "bettercolors";
 import express from "express";
 import { Stripe } from "stripe";
 import { getNumberEnv, getStringEnv } from "./utils/env-variables";
+import { getUser } from "./utils/prisma";
 
 const app = express();
 const colors = new BColors({ date: { enabled: true, format: "DD/MM/YYYY - HH:mm:ss", surrounded: "[]" } });
@@ -18,19 +19,24 @@ app.post('/webhook', express.raw({type: 'application/json'}), async(request, res
     return;
   }
 
-  if (event.type == "payment_intent.succeeded") {
-    const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
-    if (!paymentIntentSucceeded.id || !paymentIntentSucceeded.client_secret) {
-      colors.error("PaymentIntent id or client_secret is missing!");
+  if (event.type == "checkout.session.completed") {
+    const payment = event.data.object as Stripe.Checkout.Session;
+
+    let discordId = null;
+    if (payment.custom_fields.length > 0) {
+      const discordIdField = payment.custom_fields.find(field => field.key == "discordid");
+      if (discordIdField) {
+        discordId = discordIdField.numeric?.value;
+      }
+    }
+
+    if (!discordId) {
+      colors.error("No discordId found for " + payment.customer_details?.email);
       return;
     }
 
-    const payment = await stripe.paymentIntents.retrieve(paymentIntentSucceeded.id, { client_secret: paymentIntentSucceeded.client_secret });
-    // TODO: Do something with the payment (e.g. save it in a database or send it to the user)
-
-    if (payment) {
-      colors.success(`Payment ${payment.id} succeeded with amount ${payment.amount} and currency ${payment.currency}`);
-    }
+    colors.log("Payment completed for " + payment.customer_details?.email + " with " + (payment.amount_total ?? 0) / 100 + " " + payment.currency?.toUpperCase());
+    colors.log("Discord ID: " + discordId + " | Discord Username: " + (await getUser(discordId))?.username);
   }
 
   response.send();
