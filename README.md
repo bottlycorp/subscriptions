@@ -28,3 +28,7 @@ Then do `npx prisma generate` to generate your types.
 ### Lauch the app
 
 Use `pnpm` or `npm`, `run dev` or `run start`
+
+### Usage
+
+![image](https://user-images.githubusercontent.com/51505384/236888329-a2ffb21b-2597-48b7-bf07-88ecf12c3b54.png)
