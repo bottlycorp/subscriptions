@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  username   String
+  createdAt  Int
+  userId     String       @id @unique
+  isPremium  Boolean      @default(false)
+  locale     Locale       @default(en_US)
+  Discussion Discussion[]
+  Message    Message[]
+  Privacy    Privacy?
+  Question   Question[]
+  Tips       Tips?
+  Usage      Usage?
+  Vote       Vote?
+}
+
+model Privacy {
+  collectChat Boolean @default(false)
+  autoDelete  Boolean @default(false)
+  accepted    Boolean @default(false)
+  failed      Boolean @default(false)
+  userId      String  @id @unique
+  User        User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Question {
+  id        String @id @unique
+  question  String @default("")
+  answer    String @default("")
+  createdAt Int    @default(0)
+  repliedAt Int    @default(0)
+  userId    String
+  User      User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Usage {
+  id     String   @id
+  usage  Int      @default(20)
+  max    UsageMax @default(FREE)
+  userId String   @unique
+  User   User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Discussion {
+  id             String     @id
+  createdAt      Int        @default(0)
+  firstMessageAt Int        @default(0)
+  lastMessageAt  Int        @default(0)
+  link           String     @default("")
+  count          Int        @default(0)
+  writing        Boolean    @default(false)
+  active         Boolean    @default(true)
+  title          String     @default("default")
+  channelId      String     @unique @default("default")
+  contextId      String     @default("default")
+  summarization  String     @default("default")
+  type           ThreadType @default(public)
+  userId         String
+  User           User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  Message        Message[]
+}
+
+model Message {
+  id           String     @id
+  createdAt    Int        @default(0)
+  message      String     @default("Lorem imspu mipsu")
+  role         Role       @default(user)
+  tokens       Int        @default(0)
+  counted      Boolean    @default(false)
+  discussionId String
+  userId       String
+  Discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  User         User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Tips {
+  id                String  @id
+  chatPremiumSaveIt Boolean @default(true)
+  userId            String  @unique
+  User              User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Vote {
+  id        String  @id
+  count     Int     @default(0)
+  lastVote  String  @default("none")
+  firstVote String  @default("none")
+  allVotes  Json    @default("[]")
+  active    Boolean @default(true)
+  userId    String  @unique
+  User      User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+enum Locale {
+  id
+  en_US
+  en_GB
+  bg
+  zh_CN
+  zh_TW
+  hr
+  cs
+  da
+  nl
+  fi
+  fr
+  de
+  el
+  hi
+  hu
+  it
+  ja
+  ko
+  lt
+  no
+  pl
+  pt_BR
+  ro
+  ru
+  es_ES
+  sv_SE
+  th
+  tr
+  uk
+  vi
+}
+
+enum Role {
+  user
+  bot
+  system
+}
+
+enum ThreadType {
+  public
+  private
+}
+
+enum UsageMax {
+  FREE
+  PREMIUM
+}
