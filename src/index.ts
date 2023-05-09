@@ -43,7 +43,7 @@ app.post('/webhook', express.raw({type: 'application/json'}), async(request, res
           Usage: {
             update: {
               max: "PREMIUM",
-              usage: 30
+              usage: 50
             }
           }
         }
