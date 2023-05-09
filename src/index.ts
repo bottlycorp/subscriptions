@@ -2,7 +2,7 @@ import { BColors } from "bettercolors";
 import express from "express";
 import { Stripe } from "stripe";
 import { getNumberEnv, getStringEnv } from "./utils/env-variables";
-import { getUser } from "./utils/prisma";
+import { getUser, prisma } from "./utils/prisma";
 
 const app = express();
 const colors = new BColors({ date: { enabled: true, format: "DD/MM/YYYY - HH:mm:ss", surrounded: "[]" } });
@@ -30,13 +30,33 @@ app.post('/webhook', express.raw({type: 'application/json'}), async(request, res
       }
     }
 
-    if (!discordId) {
-      colors.error("No discordId found for " + payment.customer_details?.email);
-      return;
-    }
-
     colors.log("Payment completed for " + payment.customer_details?.email + " with " + (payment.amount_total ?? 0) / 100 + " " + payment.currency?.toUpperCase());
-    colors.log("Discord ID: " + discordId + " | Discord Username: " + (await getUser(discordId))?.username);
+    if (discordId){
+      colors.log("Discord ID: " + discordId + " | Discord Username: " + (await getUser(discordId))?.username);
+
+      await prisma.user.update({
+        where: {
+          userId: discordId
+        },
+        data: {
+          isPremium: true,
+          Usage: {
+            update: {
+              max: "PREMIUM",
+              usage: 30
+            }
+          }
+        }
+      }).catch(err => {
+        colors.error("Error while updating user: " + err);
+      }).then(() => {
+        colors.success("User updated successfully");
+      }).finally(() => {
+        colors.info("Payment completed and user updated successfully");
+      });
+    } else {
+      colors.error(`This user (${payment.customer_details?.email}) didn't provide a Discord ID (?? wtf why ????)`);
+    }
   }
 
   response.send();
