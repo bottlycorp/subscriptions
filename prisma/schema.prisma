@@ -8,18 +8,39 @@ datasource db {
 }
 
 model User {
-  username   String
-  createdAt  Int
-  userId     String       @id @unique
-  isPremium  Boolean      @default(false)
-  locale     Locale       @default(en_US)
-  Discussion Discussion[]
-  Message    Message[]
-  Privacy    Privacy?
-  Question   Question[]
-  Tips       Tips?
-  Usage      Usage?
-  Vote       Vote?
+  username     String
+  createdAt    Int
+  userId       String        @id @unique
+  isPremium    Boolean       @default(false)
+  locale       Locale        @default(en_US)
+  discussions  Discussion[]
+  messages     Message[]
+  privacy      Privacy?
+  questions    Question[]
+  tips         Tips?
+  usages       Usage?
+  votes        Vote?
+  subscription Subscription?
+}
+
+model Question {
+  id          String @id @unique @default(cuid())
+  question    String @default("")
+  answer      String @default("")
+  createdAt   Int    @default(0)
+  repliedAt   Int    @default(0)
+  userId      String
+  channelName String @default("Not defined")
+  guildName   String @default("Not defined")
+  user        User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Usage {
+  id     String   @id @default(cuid())
+  usage  Int      @default(20)
+  max    UsageMax @default(FREE)
+  userId String   @unique
+  user   User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
 model Privacy {
@@ -28,29 +49,22 @@ model Privacy {
   accepted    Boolean @default(false)
   failed      Boolean @default(false)
   userId      String  @id @unique
-  User        User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
-model Question {
-  id        String @id @unique
-  question  String @default("")
-  answer    String @default("")
-  createdAt Int    @default(0)
-  repliedAt Int    @default(0)
-  userId    String
-  User      User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
-}
-
-model Usage {
-  id     String   @id
-  usage  Int      @default(20)
-  max    UsageMax @default(FREE)
-  userId String   @unique
-  User   User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+model Vote {
+  id        String  @id @default(cuid())
+  count     Int     @default(0)
+  lastVote  String  @default("none")
+  firstVote String  @default("none")
+  allVotes  Json    @default("[]")
+  active    Boolean @default(true)
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
 model Discussion {
-  id             String     @id
+  id             String     @id @default(cuid())
   createdAt      Int        @default(0)
   firstMessageAt Int        @default(0)
   lastMessageAt  Int        @default(0)
@@ -58,18 +72,18 @@ model Discussion {
   count          Int        @default(0)
   writing        Boolean    @default(false)
   active         Boolean    @default(true)
-  title          String     @default("default")
-  channelId      String     @unique @default("default")
+  title          String     @default("Lorem imspu mipsu")
+  channelId      String     @unique @default("1078410876014563489")
+  guildId        String     @default("1076863331517874240")
   contextId      String     @default("default")
-  summarization  String     @default("default")
   type           ThreadType @default(public)
   userId         String
-  User           User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  Message        Message[]
+  user           User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  messages       Message[]
 }
 
 model Message {
-  id           String     @id
+  id           String     @id @default(cuid())
   createdAt    Int        @default(0)
   message      String     @default("Lorem imspu mipsu")
   role         Role       @default(user)
@@ -77,26 +91,26 @@ model Message {
   counted      Boolean    @default(false)
   discussionId String
   userId       String
-  Discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
-  User         User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
 model Tips {
-  id                String  @id
+  id                String  @id @default(cuid())
   chatPremiumSaveIt Boolean @default(true)
   userId            String  @unique
-  User              User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
-model Vote {
-  id        String  @id
-  count     Int     @default(0)
-  lastVote  String  @default("none")
-  firstVote String  @default("none")
-  allVotes  Json    @default("[]")
-  active    Boolean @default(true)
-  userId    String  @unique
-  User      User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+model Subscription {
+  id             String @id @default(cuid())
+  subscriptionId String @unique
+  nextDueDate    Int
+  paymentMethod  String
+  firstPayment   Int
+  lastPayment    Int
+  userId         String @unique
+  user           User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
 enum Locale {
@@ -133,10 +147,9 @@ enum Locale {
   vi
 }
 
-enum Role {
-  user
-  bot
-  system
+enum UsageMax {
+  FREE
+  PREMIUM
 }
 
 enum ThreadType {
@@ -144,7 +157,8 @@ enum ThreadType {
   private
 }
 
-enum UsageMax {
-  FREE
-  PREMIUM
+enum Role {
+  user
+  bot
+  system
 }
