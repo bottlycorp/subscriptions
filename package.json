@@ -14,13 +14,13 @@
 	"description": "",
 	"devDependencies": {
 		"@bluzzi/eslint-config": "^0.8.6",
-		"@prisma/client": "^4.10.1",
+		"@prisma/client": "^4.14.0",
 		"@swc-node/register": "^1.6.4",
 		"@swc/core": "^1.3.49",
 		"@types/express": "^4.17.17",
 		"@types/node": "^18.15.11",
 		"eslint": "^8.34.0",
-		"prisma": "^4.10.1",
+		"prisma": "^4.14.0",
 		"ts-node": "^10.9.1",
 		"tsconfig-paths": "^4.2.0",
 		"typescript": "^4.9.4"
@@ -29,6 +29,7 @@
 		"@types/node": "^18.13.0",
 		"@types/stripe": "^8.0.417",
 		"bettercolors": "^1.0.0",
+		"dayjs": "^1.11.7",
 		"dotenv": "^16.0.3",
 		"express": "^4.18.2",
 		"stripe": "^12.4.0"
