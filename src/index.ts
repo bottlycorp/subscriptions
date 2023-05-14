@@ -44,7 +44,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
               firstPayment: DayJS().unix(),
               lastPayment: DayJS().unix(),
               nextPayment: DayJS().add(1, "month").unix(),
-              email: event.customer_email ?? "Unknown",
+              email: event.customer_details?.email ?? "Unknown",
               subscriptionId: event.subscription?.toString() ?? "Unknown",
               paymentMethod: event.payment_method_types[0] ?? "card"
             }
@@ -118,10 +118,8 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
       colors.info(`User ${user.userId} (${user.username}) has cancelled their subscription.`);
       break;
     default:
-      colors.warning(`Unhandled event type: ${event.type}`);
       return;
   }
-
   response.send();
 });
 
