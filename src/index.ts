@@ -58,9 +58,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
         colors.info("Payment completed and user updated successfully");
       });
     } else colors.error(`This user (${payment.customer_details?.email}) didn't provide a Discord ID (?? wtf why ????)`);
-  }
-
-  if (event.type == "invoice.payment_failed") {
+  } else if (event.type == "invoice.payment_failed") {
     const payment = event.data.object as Stripe.Invoice;
 
     const email = payment.customer_email;
@@ -79,9 +77,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
     }).finally(() => {
       colors.info("Payment failed and user updated successfully");
     });
-  }
-
-  if (event.type == "invoice.paid") {
+  } else if (event.type == "invoice.paid") {
     const payment = event.data.object as Stripe.Invoice;
 
     const email = payment.customer_email;
@@ -99,9 +95,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
     }).finally(() => {
       colors.info("Payment paid and user updated successfully");
     });
-  }
-
-  if (event.type == "customer.subscription.deleted") {
+  } else if (event.type == "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
 
     colors.log("Subscription deleted for id " + subscription.id);
