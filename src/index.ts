@@ -119,8 +119,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
     });
   }
 
-  if ()
-
   response.send();
 });
 
