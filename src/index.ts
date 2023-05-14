@@ -56,6 +56,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
       });
 
       colors.info(`User ${user.userId} (${user.username}) has been upgraded to premium.`);
+      response.send();
       break;
     case "invoice.payment_failed":
       event = event.data.object as Stripe.Invoice;
@@ -71,10 +72,10 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
         }
       }).catch(err => {
         colors.error(err);
-        response.status(500).send();
       });
 
       colors.info(`User ${user.userId} (${user.username}) has been downgraded to free.`);
+      response.send();
       break;
     case "invoice.paid":
       event = event.data.object as Stripe.Invoice;
@@ -93,10 +94,10 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
         }
       }).catch(err => {
         colors.error(err);
-        response.status(500).send();
       });
 
       colors.info(`User ${user.userId} (${user.username}) has paid their subscription.`);
+      response.send();
       break;
     case "customer.subscription.deleted":
       event = event.data.object as Stripe.Subscription;
@@ -112,15 +113,15 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
         }
       }).catch(err => {
         colors.error(err);
-        response.status(500).send();
       });
 
       colors.info(`User ${user.userId} (${user.username}) has cancelled their subscription.`);
+      response.send();
       break;
     default:
+      response.send();
       return;
   }
-  response.send();
 });
 
 app.listen(getNumberEnv("PORT") ?? 4242);
