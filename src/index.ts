@@ -20,97 +20,106 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
     return;
   }
 
-  if (event.type == "checkout.session.completed") {
-    const payment = event.data.object as Stripe.Checkout.Session;
+  let discordIdField;
+  let discordId;
+  let user;
 
-    let discordId = null;
-    const email = payment.customer_details?.email;
-    colors.log("Payment completed for " + email  + " with " + (payment.amount_total ?? 0) / 100 + " " + payment.currency?.toUpperCase());
+  switch (event.type) {
+    case "checkout.session.completed":
+      event = event.data.object as Stripe.Checkout.Session;
+      discordIdField = event.custom_fields.find(field => field.key == "discordid");
+      if (!discordIdField) return;
+      discordId = discordIdField.numeric?.value;
+      if (!discordId) return;
+      user = await getUser(discordId);
+      if (!user) return;
 
-    if (payment.custom_fields.length > 0) {
-      const discordIdField = payment.custom_fields.find(field => field.key == "discordid");
-      if (discordIdField) {
-        discordId = discordIdField.numeric?.value;
-      }
-    }
-
-    if (discordId) {
-      colors.log("Discord ID: " + discordId + " | Discord Username: " + (await getUser(discordId))?.username);
-
-      await prisma.user.update({ where: { userId: discordId },
+      await prisma.user.update({
+        where: { userId: user.userId },
         data: {
           isPremium: true,
           usages: { update: { max: "PREMIUM", usage: 50 } },
           subscription: {
             create: {
-              subscriptionId: payment.subscription?.toString() ?? "NONE",
-              email: email ?? "NONE",
               firstPayment: DayJS().unix(),
               lastPayment: DayJS().unix(),
               nextPayment: DayJS().add(1, "month").unix(),
-              paymentMethod: payment.payment_method_types?.[0] ?? "NONE"
+              email: event.customer_email ?? "Unknown",
+              subscriptionId: event.subscription?.toString() ?? "Unknown",
+              paymentMethod: event.payment_method_types[0] ?? "card"
             }
           }
         }
-      }).catch((err: any) => {
-        colors.error("Error while updating user: " + err);
-      }).finally(() => {
-        colors.info("Payment completed and user updated successfully");
+      }).catch(err => {
+        colors.error(err);
+        response.status(500).send();
       });
-    } else colors.error(`This user (${payment.customer_details?.email}) didn't provide a Discord ID (?? wtf why ????)`);
-  } else if (event.type == "invoice.payment_failed") {
-    const payment = event.data.object as Stripe.Invoice;
 
-    const email = payment.customer_email;
-    if (!email) return colors.error("No email provided");
+      colors.info(`User ${user.userId} (${user.username}) has been upgraded to premium.`);
+      break;
+    case "invoice.payment_failed":
+      event = event.data.object as Stripe.Invoice;
+      user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.subscription?.toString() } } });
+      if (!user) return;
 
-    colors.log("Payment failed for " + email  + " with " + (payment.amount_due ?? 0) / 100 + " " + payment.currency?.toUpperCase());
-    const subscription = await prisma.subscription.findFirst({ where: { email: email, subscriptionId: payment.subscription?.toString() } });
-    if (!subscription) return colors.error("No subscription found");
+      await prisma.user.update({
+        where: { userId: user.userId },
+        data: {
+          isPremium: false,
+          usages: { update: { max: "FREE", usage: 20 } },
+          subscription: { delete: true }
+        }
+      }).catch(err => {
+        colors.error(err);
+        response.status(500).send();
+      });
 
-    await prisma.user.update({ where: { userId: subscription.userId }, data: {
-      isPremium: false,
-      subscription: { delete: true },
-      usages: { update: { max: "FREE", usage: 0 } }
-    } }).catch((err: any) => {
-      colors.error("Error while updating user: " + err);
-    }).finally(() => {
-      colors.info("Payment failed and user updated successfully");
-    });
-  } else if (event.type == "invoice.paid") {
-    const payment = event.data.object as Stripe.Invoice;
+      colors.info(`User ${user.userId} (${user.username}) has been downgraded to free.`);
+      break;
+    case "invoice.paid":
+      event = event.data.object as Stripe.Invoice;
+      user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.subscription?.toString() } } });
+      if (!user) return;
 
-    const email = payment.customer_email;
-    if (!email) return colors.error("No email provided");
+      await prisma.user.update({
+        where: { userId: user.userId },
+        data: {
+          subscription: {
+            update: {
+              lastPayment: DayJS().unix(),
+              nextPayment: DayJS().add(1, "month").unix()
+            }
+          }
+        }
+      }).catch(err => {
+        colors.error(err);
+        response.status(500).send();
+      });
 
-    colors.log("Payment paid for " + email  + " with " + (payment.amount_due ?? 0) / 100 + " " + payment.currency?.toUpperCase());
-    const subscription = await prisma.subscription.findFirst({ where: { email: email, subscriptionId: payment.subscription?.toString() } });
-    if (!subscription) return colors.error("No subscription found");
+      colors.info(`User ${user.userId} (${user.username}) has paid their subscription.`);
+      break;
+    case "customer.subscription.deleted":
+      event = event.data.object as Stripe.Subscription;
+      user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.id } } });
+      if (!user) return;
 
-    await prisma.user.update({ where: { userId: subscription.userId }, data: {
-      isPremium: true,
-      subscription: { update: { lastPayment: DayJS().unix(), nextPayment: DayJS().add(1, "month").unix() } }
-    } }).catch((err: any) => {
-      colors.error("Error while updating user: " + err);
-    }).finally(() => {
-      colors.info("Payment paid and user updated successfully");
-    });
-  } else if (event.type == "customer.subscription.deleted") {
-    const subscription = event.data.object as Stripe.Subscription;
+      await prisma.user.update({
+        where: { userId: user.userId },
+        data: {
+          isPremium: false,
+          usages: { update: { max: "FREE", usage: 20 } },
+          subscription: { delete: true }
+        }
+      }).catch(err => {
+        colors.error(err);
+        response.status(500).send();
+      });
 
-    colors.log("Subscription deleted for id " + subscription.id);
-    const subscriptionData = await prisma.subscription.findFirst({ where: { subscriptionId: subscription.id } });
-    if (!subscriptionData) return colors.error("No subscription found");
-
-    await prisma.user.update({ where: { userId: subscriptionData.userId }, data: {
-      isPremium: false,
-      subscription: { delete: true },
-      usages: { update: { max: "FREE", usage: 0 } }
-    } }).catch((err: any) => {
-      colors.error("Error while updating user: " + err);
-    }).finally(() => {
-      colors.info("Subscription deleted and user updated successfully");
-    });
+      colors.info(`User ${user.userId} (${user.username}) has cancelled their subscription.`);
+      break;
+    default:
+      colors.warning(`Unhandled event type: ${event.type}`);
+      return;
   }
 
   response.send();
