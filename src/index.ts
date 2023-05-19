@@ -122,6 +122,42 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
       colors.info(`User ${user.userId} (${user.username}) has cancelled their subscription.`);
       response.send();
       break;
+    case "customer.subscription.updated":
+      event = event.data.object as Stripe.Subscription;
+      user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.id } } });
+      if (!user) return;
+
+      if (event.status == "canceled") {
+        try {
+          await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+              subscription: { update: { canceledAt: DayJS().unix() } }
+            }
+          });
+        } catch (err) {
+          console.error(err);
+          response.status(500).send();
+          return;
+        }
+      } else if (event.status == "active") {
+        try {
+          await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+              subscription: { update: { canceledAt: 0 } }
+            }
+          });
+        } catch (err) {
+          console.error(err);
+          response.status(500).send();
+          return;
+        }
+      }
+
+      colors.info(`User ${user.userId} (${user.username}) has updated their subscription.`);
+      response.send();
+      break;
     default:
       response.status(200).send();
       return;

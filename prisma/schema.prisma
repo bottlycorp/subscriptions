@@ -109,9 +109,10 @@ model Subscription {
   id             String @id @default(cuid())
   subscriptionId String @unique
   paymentMethod  String
-  firstPayment   Int
-  lastPayment    Int
-  nextPayment    Int
+  firstPayment   Int    @default(0)
+  lastPayment    Int    @default(0)
+  nextPayment    Int    @default(0)
+  canceledAt     Int    @default(0)
   email          String @unique
   userId         String @unique
   user           User   @relation(fields: [userId], references: [userId], onDelete: Cascade)

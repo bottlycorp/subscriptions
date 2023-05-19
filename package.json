@@ -6,7 +6,12 @@
 		"dev": "prisma generate && npx nodemon --exec node -r @swc-node/register -r tsconfig-paths/register ./src/index.ts dev",
 		"start": "prisma generate && node -r @swc-node/register -r tsconfig-paths/register ./src/index.ts",
 		"lint": "eslint .",
-		"lint:fix": "eslint . --fix"
+		"lint:fix": "eslint . --fix",
+		"db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "db:gen": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:format": "prisma format"
 	},
 	"keywords": [],
 	"author": "Vote Express App",
