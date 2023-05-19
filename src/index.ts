@@ -52,7 +52,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
         }
       }).catch(err => {
         colors.error(err);
-        response.status(500).send();
+        response.send();
       });
 
       colors.info(`User ${user.userId} (${user.username}) has been upgraded to premium.`);
@@ -104,22 +104,26 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
       user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.id } } });
       if (!user) return;
 
-      await prisma.user.update({
-        where: { userId: user.userId },
-        data: {
-          isPremium: false,
-          usages: { update: { max: "FREE", usage: 20 } },
-          subscription: { delete: true }
-        }
-      }).catch(err => {
-        colors.error(err);
-      });
+      try {
+        await prisma.user.update({
+          where: { userId: user.userId },
+          data: {
+            isPremium: false,
+            usages: { update: { max: "FREE", usage: 20 } },
+            subscription: { delete: true }
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        response.status(500).send();
+        return;
+      }
 
       colors.info(`User ${user.userId} (${user.username}) has cancelled their subscription.`);
       response.send();
       break;
     default:
-      response.send();
+      response.status(200).send();
       return;
   }
 });
