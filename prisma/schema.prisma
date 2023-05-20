@@ -112,9 +112,9 @@ model Subscription {
   firstPayment   Int    @default(0)
   lastPayment    Int    @default(0)
   nextPayment    Int    @default(0)
-  canceledAt     Int    @default(0)
   email          String @unique
   userId         String @unique
+  canceledAt     Int    @default(0)
   user           User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }
 
