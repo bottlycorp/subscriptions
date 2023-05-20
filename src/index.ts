@@ -127,7 +127,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
       user = await prisma.user.findFirst({ where: { subscription: { subscriptionId: event.id } } });
       if (!user) return;
 
-      if (event.status == "canceled") {
+      if (event.canceled_at != null) {
         try {
           await prisma.user.update({
             where: { userId: user.userId },
@@ -140,7 +140,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), async(request, r
           response.status(500).send();
           return;
         }
-      } else if (event.status == "active") {
+      } else if (event.canceled_at == null) {
         try {
           await prisma.user.update({
             where: { userId: user.userId },
